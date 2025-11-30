@@ -12,7 +12,6 @@ const ENV_FILE = path.join(__dirname, '.env');
 
 const wss = new WebSocketServer({ port: PORT });
 
-// Load environment variables from .env file into process.env
 function loadEnvFile() {
     if (fs.existsSync(ENV_FILE)) {
         const envContent = fs.readFileSync(ENV_FILE, 'utf8');
@@ -30,7 +29,6 @@ function loadEnvFile() {
     }
 }
 
-// Parse .env file and return array of key-value pairs
 function parseEnvFile() {
     if (!fs.existsSync(ENV_FILE)) {
         return [];
@@ -50,7 +48,6 @@ function parseEnvFile() {
     return vars;
 }
 
-// Get environment variables with masked values for display
 function getEnvVars() {
     const vars = parseEnvFile();
     return vars.map(v => ({
@@ -61,28 +58,22 @@ function getEnvVars() {
     }));
 }
 
-// Add or update an environment variable
 function addEnvVar(key, value) {
     try {
-        // Read existing variables
+        
         let vars = parseEnvFile();
         
-        // Check if key already exists
         const existingIndex = vars.findIndex(v => v.key === key);
         
         if (existingIndex !== -1) {
-            // Update existing key
             vars[existingIndex].value = value;
         } else {
-            // Add new key
             vars.push({ key, value });
         }
         
-        // Write back to file
         const lines = vars.map(v => `${v.key}=${v.value}`);
         fs.writeFileSync(ENV_FILE, lines.join('\n') + '\n', 'utf8');
         
-        // Reload environment variables
         loadEnvFile();
         
         return { success: true };
@@ -91,24 +82,19 @@ function addEnvVar(key, value) {
     }
 }
 
-// Delete an environment variable
 function deleteEnvVar(key) {
     try {
         if (!fs.existsSync(ENV_FILE)) {
             return { success: false, error: '.env file not found' };
         }
         
-        // Read existing variables
         let vars = parseEnvFile();
         
-        // Filter out the key to delete
         vars = vars.filter(v => v.key !== key);
         
-        // Write back to file
         const lines = vars.map(v => `${v.key}=${v.value}`);
         fs.writeFileSync(ENV_FILE, lines.join('\n') + '\n', 'utf8');
         
-        // Remove from process.env
         delete process.env[key];
         
         return { success: true };
@@ -117,7 +103,6 @@ function deleteEnvVar(key) {
     }
 }
 
-// Load environment variables on startup
 loadEnvFile();
 
 const sandbox = {
@@ -193,7 +178,6 @@ function getExtension(lang) {
 }
 
 wss.on('connection', (ws) => {
-    // Load saved project on connection
     if (fs.existsSync(SAVE_FILE)) {
         try { 
             ws.send(JSON.stringify({ 
@@ -213,19 +197,14 @@ wss.on('connection', (ws) => {
             return; 
         }
         
-        // Verify token
         if (data.token !== SECRET_TOKEN) return;
 
-        // ===================================
-        // EXECUTE CODE IN CELLS
-        // ===================================
         if (data.command === 'EXECUTE') {
             const { cellId, code, language } = data;
             const lang = language || 'javascript';
 
             if (lang === 'javascript') {
                 try {
-                    // Shell command execution (starts with !)
                     if (code.trim().startsWith('!')) {
                         exec(code.trim().substring(1), { cwd: process.cwd() }, (err, stdout, stderr) => {
                             ws.send(JSON.stringify({ 
@@ -237,14 +216,12 @@ wss.on('connection', (ws) => {
                         return;
                     }
                     
-                    // Regular JavaScript execution
                     const result = await vm.runInContext(`(async()=>{${code}})()`, sandbox);
                     ws.send(JSON.stringify({ type: 'result', cellId, content: result }));
                 } catch (e) { 
                     ws.send(JSON.stringify({ type: 'error', cellId, content: e.message })); 
                 }
             } else {
-                // Cloud execution via Piston
                 let pistonLang = lang;
                 if (lang === 'csharp') pistonLang = 'csharp';
                 
@@ -266,9 +243,6 @@ wss.on('connection', (ws) => {
             }
         }
 
-        // ===================================
-        // SAVE PROJECT
-        // ===================================
         if (data.command === 'SAVE') {
             try {
                 fs.writeFileSync(SAVE_FILE, JSON.stringify(data.cells, null, 2));
@@ -281,9 +255,6 @@ wss.on('connection', (ws) => {
             }
         }
 
-        // ===================================
-        // LOAD PROJECT
-        // ===================================
         if (data.command === 'LOAD' && fs.existsSync(SAVE_FILE)) {
             try {
                 ws.send(JSON.stringify({ 
@@ -298,9 +269,6 @@ wss.on('connection', (ws) => {
             }
         }
 
-        // ===================================
-        // ENVIRONMENT VARIABLES - GET LIST
-        // ===================================
         if (data.command === 'GET_ENV_VARS') {
             try {
                 const vars = getEnvVars();
@@ -316,14 +284,10 @@ wss.on('connection', (ws) => {
             }
         }
 
-        // ===================================
-        // ENVIRONMENT VARIABLES - ADD/UPDATE
-        // ===================================
         if (data.command === 'ADD_ENV_VAR') {
             try {
                 const { key, value } = data;
                 
-                // Validate input
                 if (!key || !value) {
                     ws.send(JSON.stringify({ 
                         type: 'ENV_ERROR', 
@@ -332,7 +296,6 @@ wss.on('connection', (ws) => {
                     return;
                 }
                 
-                // Validate key format
                 if (!/^[A-Z_][A-Z0-9_]*$/i.test(key)) {
                     ws.send(JSON.stringify({ 
                         type: 'ENV_ERROR', 
@@ -363,9 +326,6 @@ wss.on('connection', (ws) => {
             }
         }
 
-        // ===================================
-        // ENVIRONMENT VARIABLES - DELETE
-        // ===================================
         if (data.command === 'DELETE_ENV_VAR') {
             try {
                 const { key } = data;
@@ -400,9 +360,6 @@ wss.on('connection', (ws) => {
             }
         }
 
-        // ===================================
-        // LEGACY: GET_SECRETS (backward compatibility)
-        // ===================================
         if (data.command === 'GET_SECRETS') {
             try {
                 const secrets = parseEnvFile();
@@ -415,9 +372,6 @@ wss.on('connection', (ws) => {
             }
         }
 
-        // ===================================
-        // LEGACY: SAVE_SECRETS (backward compatibility)
-        // ===================================
         if (data.command === 'SAVE_SECRETS') {
             try {
                 const lines = data.secrets.map(s => `${s.key}=${s.value}`);
@@ -433,9 +387,6 @@ wss.on('connection', (ws) => {
             }
         }
 
-        // ===================================
-        // EXPORT PROJECT
-        // ===================================
         if (data.command === 'EXPORT') {
             try {
                 const exportDir = path.join(__dirname, `exports_${Date.now()}`);
@@ -455,7 +406,6 @@ wss.on('connection', (ws) => {
                     count++;
                 });
                 
-                // Copy .env file to export if it exists
                 if (fs.existsSync(ENV_FILE)) {
                     fs.copyFileSync(ENV_FILE, path.join(exportDir, '.env'));
                     console.log('📋 Copied .env file to export');
@@ -485,11 +435,11 @@ wss.on('connection', (ws) => {
 });
 
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('🚀 BFF Playground Bridge Server');
+console.log('BFF Playground Bridge Server');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log(`📡 WebSocket: ws://localhost:${PORT}`);
-console.log(`📁 Save file: ${SAVE_FILE}`);
-console.log(`🔐 Environment: ${ENV_FILE}`);
-console.log(`🔑 Token: ${SECRET_TOKEN}`);
+console.log(`WebSocket: ws://localhost:${PORT}`);
+console.log(`Save file: ${SAVE_FILE}`);
+console.log(`Environment: ${ENV_FILE}`);
+console.log(`Token: ${SECRET_TOKEN}`);
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('Ready for connections...\n');
