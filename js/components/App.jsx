@@ -89,21 +89,21 @@ function App() {
   };
 
   const handleBackendResult = (cellId, content) => {
-    window.backendData[`cell_${cellId}`] = content;
-    setCells(prev => prev.map(c => c.id === cellId ? { 
-      ...c, 
-      output: JSON.stringify(content, null, 2), 
-      status: 'success', 
-      error: null 
-    } : c));
-    
-    const allCells = cellsRef.current;
-    const dependents = allCells.filter(c => 
-      c.id !== cellId && 
-      (c.code.includes(`['cell_${cellId}']`) || c.code.includes(`["cell_${cellId}"]`))
-    );
-    dependents.forEach(dep => runCell(dep.id));
-  };
+  window.backendData[`cell_${cellId}`] = content;
+  setCells(prev => prev.map(c => c.id === cellId ? { 
+    ...c, 
+    output: content,  
+    status: 'success', 
+    error: null 
+  } : c));
+  
+  const allCells = cellsRef.current;
+  const dependents = allCells.filter(c => 
+    c.id !== cellId && 
+    (c.code.includes(`['cell_${cellId}']`) || c.code.includes(`["cell_${cellId}"]`))
+  );
+  dependents.forEach(dep => runCell(dep.id));
+};
 
   const handleBackendError = (cellId, errorMsg) => {
     setCells(prev => prev.map(c => c.id === cellId ? { 

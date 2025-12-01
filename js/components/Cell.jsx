@@ -1,3 +1,200 @@
+function JsonTreeView({ data, name = 'root' }) {
+  const { useState } = React;
+
+  const JsonNode = ({ value, keyName, depth = 0 }) => {
+    const [isExpanded, setIsExpanded] = useState(depth < 2);
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = (val) => {
+      const textToCopy = typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val);
+      navigator.clipboard.writeText(textToCopy);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    };
+
+    const indent = depth * 20;
+
+    if (value === null) {
+      return (
+        <div style={{ marginLeft: `${indent}px` }} className="flex items-center gap-2 py-0.5 group/item">
+          {keyName && <span className="text-slate-600 font-medium">{keyName}:</span>}
+          <span className="text-purple-600 font-semibold">null</span>
+          <button
+            onClick={() => handleCopy(value)}
+            className="opacity-0 group-hover/item:opacity-100 p-1 hover:bg-slate-100 rounded transition-all"
+            title="Copy value"
+          >
+            <i data-lucide={copied ? "check" : "copy"} className={`w-3 h-3 ${copied ? 'text-green-600' : 'text-slate-400'}`}></i>
+          </button>
+        </div>
+      );
+    }
+
+    if (value === undefined) {
+      return (
+        <div style={{ marginLeft: `${indent}px` }} className="flex items-center gap-2 py-0.5 group/item">
+          {keyName && <span className="text-slate-600 font-medium">{keyName}:</span>}
+          <span className="text-slate-400 font-semibold italic">undefined</span>
+          <button
+            onClick={() => handleCopy('undefined')}
+            className="opacity-0 group-hover/item:opacity-100 p-1 hover:bg-slate-100 rounded transition-all"
+            title="Copy value"
+          >
+            <i data-lucide={copied ? "check" : "copy"} className={`w-3 h-3 ${copied ? 'text-green-600' : 'text-slate-400'}`}></i>
+          </button>
+        </div>
+      );
+    }
+
+    if (typeof value === 'boolean') {
+      return (
+        <div style={{ marginLeft: `${indent}px` }} className="flex items-center gap-2 py-0.5 group/item">
+          {keyName && <span className="text-slate-600 font-medium">{keyName}:</span>}
+          <span className="text-orange-600 font-semibold">{String(value)}</span>
+          <button
+            onClick={() => handleCopy(value)}
+            className="opacity-0 group-hover/item:opacity-100 p-1 hover:bg-slate-100 rounded transition-all"
+            title="Copy value"
+          >
+            <i data-lucide={copied ? "check" : "copy"} className={`w-3 h-3 ${copied ? 'text-green-600' : 'text-slate-400'}`}></i>
+          </button>
+        </div>
+      );
+    }
+
+    if (typeof value === 'number') {
+      return (
+        <div style={{ marginLeft: `${indent}px` }} className="flex items-center gap-2 py-0.5 group/item">
+          {keyName && <span className="text-slate-600 font-medium">{keyName}:</span>}
+          <span className="text-blue-600 font-semibold">{value}</span>
+          <button
+            onClick={() => handleCopy(value)}
+            className="opacity-0 group-hover/item:opacity-100 p-1 hover:bg-slate-100 rounded transition-all"
+            title="Copy value"
+          >
+            <i data-lucide={copied ? "check" : "copy"} className={`w-3 h-3 ${copied ? 'text-green-600' : 'text-slate-400'}`}></i>
+          </button>
+        </div>
+      );
+    }
+
+    if (typeof value === 'string') {
+      return (
+        <div style={{ marginLeft: `${indent}px` }} className="flex items-center gap-2 py-0.5 group/item">
+          {keyName && <span className="text-slate-600 font-medium">{keyName}:</span>}
+          <span className="text-green-700 font-medium">"{value}"</span>
+          <button
+            onClick={() => handleCopy(value)}
+            className="opacity-0 group-hover/item:opacity-100 p-1 hover:bg-slate-100 rounded transition-all"
+            title="Copy value"
+          >
+            <i data-lucide={copied ? "check" : "copy"} className={`w-3 h-3 ${copied ? 'text-green-600' : 'text-slate-400'}`}></i>
+          </button>
+        </div>
+      );
+    }
+
+    if (Array.isArray(value)) {
+      const isEmpty = value.length === 0;
+      return (
+        <div style={{ marginLeft: `${indent}px` }} className="py-0.5">
+          <div className="flex items-center gap-2 group/item">
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="p-0.5 hover:bg-slate-100 rounded transition-all flex items-center gap-1"
+              disabled={isEmpty}
+            >
+              {!isEmpty && (
+                <i data-lucide={isExpanded ? "chevron-down" : "chevron-right"} className="w-3.5 h-3.5 text-slate-400"></i>
+              )}
+              {keyName && <span className="text-slate-600 font-medium">{keyName}:</span>}
+              <span className="text-slate-500 font-mono text-sm">
+                [{isEmpty ? '' : value.length}]
+              </span>
+            </button>
+            <button
+              onClick={() => handleCopy(value)}
+              className="opacity-0 group-hover/item:opacity-100 p-1 hover:bg-slate-100 rounded transition-all"
+              title="Copy array"
+            >
+              <i data-lucide={copied ? "check" : "copy"} className={`w-3 h-3 ${copied ? 'text-green-600' : 'text-slate-400'}`}></i>
+            </button>
+          </div>
+          {isExpanded && !isEmpty && (
+            <div className="border-l-2 border-slate-200 ml-2 mt-1">
+              {value.map((item, index) => (
+                <JsonNode key={index} value={item} keyName={index} depth={depth + 1} />
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (typeof value === 'object') {
+      const keys = Object.keys(value);
+      const isEmpty = keys.length === 0;
+      return (
+        <div style={{ marginLeft: `${indent}px` }} className="py-0.5">
+          <div className="flex items-center gap-2 group/item">
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="p-0.5 hover:bg-slate-100 rounded transition-all flex items-center gap-1"
+              disabled={isEmpty}
+            >
+              {!isEmpty && (
+                <i data-lucide={isExpanded ? "chevron-down" : "chevron-right"} className="w-3.5 h-3.5 text-slate-400"></i>
+              )}
+              {keyName && <span className="text-slate-600 font-medium">{keyName}:</span>}
+              <span className="text-slate-500 font-mono text-sm">
+                {'{'}{ isEmpty ? '' : keys.length}{'}'}
+              </span>
+            </button>
+            <button
+              onClick={() => handleCopy(value)}
+              className="opacity-0 group-hover/item:opacity-100 p-1 hover:bg-slate-100 rounded transition-all"
+              title="Copy object"
+            >
+              <i data-lucide={copied ? "check" : "copy"} className={`w-3 h-3 ${copied ? 'text-green-600' : 'text-slate-400'}`}></i>
+            </button>
+          </div>
+          {isExpanded && !isEmpty && (
+            <div className="border-l-2 border-slate-200 ml-2 mt-1">
+              {keys.map((key) => (
+                <JsonNode key={key} value={value[key]} keyName={key} depth={depth + 1} />
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ marginLeft: `${indent}px` }} className="flex items-center gap-2 py-0.5 group/item">
+        {keyName && <span className="text-slate-600 font-medium">{keyName}:</span>}
+        <span className="text-slate-700">{String(value)}</span>
+        <button
+          onClick={() => handleCopy(value)}
+          className="opacity-0 group-hover/item:opacity-100 p-1 hover:bg-slate-100 rounded transition-all"
+          title="Copy value"
+        >
+          <i data-lucide={copied ? "check" : "copy"} className={`w-3 h-3 ${copied ? 'text-green-600' : 'text-slate-400'}`}></i>
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <div className="p-6 font-mono text-xs text-slate-700 leading-relaxed bg-white">
+      <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3 border-b border-slate-100 pb-2">
+        Console Output
+      </div>
+      <JsonNode value={data} keyName={name} depth={0} />
+    </div>
+  );
+}
+
+
 function Cell({ cell, onChange, onLangChange, onFilenameChange, onRun, onClear, onDelete }) {
   const isBackend = cell.type === 'backend';
   const isRunning = cell.status === 'running';
@@ -106,12 +303,9 @@ function Cell({ cell, onChange, onLangChange, onFilenameChange, onRun, onClear, 
           {!cell.error && cell.output && (
             <div className="h-full w-full">
               {isBackend ? (
-                <div className="p-6 font-mono text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3 border-b border-slate-100 pb-2">Console Output</div>
-                  {JSON.stringify(cell.output, null, 2)}
-                </div>
+                <JsonTreeView data={cell.output} name="output" />
               ) : (
-                <div className="preview-box p-6 h-full flex items-center justify-center text-slate-800">{cell.output}</div>
+              <div className="preview-box p-6 h-full flex items-center justify-center text-slate-800">{cell.output}</div>
               )}
             </div>
           )}

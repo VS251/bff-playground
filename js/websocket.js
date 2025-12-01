@@ -1,4 +1,4 @@
-// WebSocket utility functions
+
 function createWebSocketConnection(onOpen, onClose, onMessage) {
   const ws = new WebSocket(BRIDGE_URL);
   
