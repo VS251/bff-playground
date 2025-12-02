@@ -1,4 +1,4 @@
-function Header({ status, onHelp, onExport, onSave, onEnvManager }) {
+function Header({ status, currentProject, onHelp, onExport, onSave, onEnvManager }) {
   return (
     <header className="h-16 glass-header border-b border-slate-200/70 flex items-center justify-between px-8 sticky top-0 z-50 shadow-sm">
       <div className="flex items-center gap-3">
