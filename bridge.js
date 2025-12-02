@@ -7,7 +7,9 @@ const https = require('https');
 
 const PORT = 8888;
 const SECRET_TOKEN = "bff-alpha-token";
-const SAVE_FILE = path.join(__dirname, 'playground.json');
+
+let CURRENT_PROJECT = 'default';
+const SAVE_FILE = () => path.join(__dirname, `${CURRENT_PROJECT}.playground.json`);
 const ENV_FILE = path.join(__dirname, '.env');
 
 const wss = new WebSocketServer({ port: PORT });
@@ -103,6 +105,81 @@ function deleteEnvVar(key) {
     }
 }
 
+function listProjects() {
+    try {
+        const files = fs.readdirSync(__dirname);
+        const projects = files
+            .filter(f => f.endsWith('.playground.json'))
+            .map(f => f.replace('.playground.json', ''));
+        
+        if (!projects.includes('default') && fs.existsSync(path.join(__dirname, 'playground.json'))) {
+            fs.renameSync(
+                path.join(__dirname, 'playground.json'),
+                path.join(__dirname, 'default.playground.json')
+            );
+            projects.push('default');
+        }
+        
+        return projects.length > 0 ? projects : ['default'];
+    } catch (error) {
+        console.error('Error listing projects:', error);
+        return ['default'];
+    }
+}
+
+function createProject(projectName) {
+    try {
+        if (!/^[a-zA-Z0-9_-]+$/.test(projectName)) {
+            return { 
+                success: false, 
+                error: 'Project name can only contain letters, numbers, hyphens, and underscores' 
+            };
+        }
+        
+        const projectFile = path.join(__dirname, `${projectName}.playground.json`);
+        
+        if (fs.existsSync(projectFile)) {
+            return { success: false, error: 'Project already exists' };
+        }
+        
+        const defaultCell = {
+            id: 1,
+            type: 'backend',
+            language: 'javascript',
+            filename: 'api.js',
+            code: '// New project\nreturn { message: "Hello from ' + projectName + '" };',
+            output: null,
+            status: 'idle'
+        };
+        
+        fs.writeFileSync(projectFile, JSON.stringify([defaultCell], null, 2));
+        
+        return { success: true, projectName };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+function switchProject(projectName) {
+    try {
+        const projectFile = path.join(__dirname, `${projectName}.playground.json`);
+        
+        if (!fs.existsSync(projectFile)) {
+            return { success: false, error: 'Project not found' };
+        }
+        
+        CURRENT_PROJECT = projectName;
+        
+        return { success: true, projectName };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+function getCurrentProject() {
+    return CURRENT_PROJECT;
+}
+
 loadEnvFile();
 
 const sandbox = {
@@ -178,6 +255,12 @@ function getExtension(lang) {
 }
 
 wss.on('connection', (ws) => {
+    const saveFile = SAVE_FILE();
+    ws.send(JSON.stringify({
+        type: 'CURRENT_PROJECT',
+        projectName: CURRENT_PROJECT,
+        projects: listProjects()
+    }));
     if (fs.existsSync(SAVE_FILE)) {
         try { 
             ws.send(JSON.stringify({ 
@@ -245,8 +328,9 @@ wss.on('connection', (ws) => {
 
         if (data.command === 'SAVE') {
             try {
-                fs.writeFileSync(SAVE_FILE, JSON.stringify(data.cells, null, 2));
-                ws.send(JSON.stringify({ type: 'log', content: 'Project saved to disk!' }));
+                const saveFile = SAVE_FILE();
+                fs.writeFileSync(saveFile, JSON.stringify(data.cells, null, 2));
+                ws.send(JSON.stringify({ type: 'log', content: `Project '${CURRENT_PROJECT}' saved to disk!` }));
             } catch (e) {
                 ws.send(JSON.stringify({ 
                     type: 'error', 
@@ -255,17 +339,21 @@ wss.on('connection', (ws) => {
             }
         }
 
-        if (data.command === 'LOAD' && fs.existsSync(SAVE_FILE)) {
-            try {
+        if (data.command === 'LOAD') {
+            const saveFile = SAVE_FILE();
+            if (fs.existsSync(saveFile)) {
+                try {
                 ws.send(JSON.stringify({ 
                     type: 'LOAD_DATA', 
                     cells: JSON.parse(fs.readFileSync(SAVE_FILE)) 
                 }));
-            } catch (e) {
+            }
+            catch (e) {
                 ws.send(JSON.stringify({ 
                     type: 'error', 
                     content: 'Failed to load: ' + e.message 
                 }));
+            }
             }
         }
 
@@ -311,7 +399,7 @@ wss.on('connection', (ws) => {
                         type: 'ENV_VAR_ADDED', 
                         key: key 
                     }));
-                    console.log(`✅ Added environment variable: ${key}`);
+                    console.log(`Added environment variable: ${key}`);
                 } else {
                     ws.send(JSON.stringify({ 
                         type: 'ENV_ERROR', 
@@ -345,7 +433,7 @@ wss.on('connection', (ws) => {
                         type: 'ENV_VAR_DELETED', 
                         key: key 
                     }));
-                    console.log(`🗑️  Deleted environment variable: ${key}`);
+                    console.log(`Deleted environment variable: ${key}`);
                 } else {
                     ws.send(JSON.stringify({ 
                         type: 'ENV_ERROR', 
@@ -408,10 +496,10 @@ wss.on('connection', (ws) => {
                 
                 if (fs.existsSync(ENV_FILE)) {
                     fs.copyFileSync(ENV_FILE, path.join(exportDir, '.env'));
-                    console.log('📋 Copied .env file to export');
+                    console.log('Copied .env file to export');
                 }
                 
-                console.log(`📦 Exported ${count} files to ${exportDir}`);
+                console.log(`Exported ${count} files to ${exportDir}`);
                 ws.send(JSON.stringify({ 
                     type: 'log', 
                     content: `Successfully exported to /${path.basename(exportDir)}` 
@@ -423,7 +511,117 @@ wss.on('connection', (ws) => {
                 }));
             }
         }
+        if (data.command === 'LIST_PROJECTS') {
+            try {
+                const projects = listProjects();
+                ws.send(JSON.stringify({
+                    type: 'PROJECTS_LIST',
+                    projects: projects,
+                    currentProject: CURRENT_PROJECT
+                }));
+            } catch (e) {
+                ws.send(JSON.stringify({
+                    type: 'PROJECT_ERROR',
+                    message: 'Failed to list projects: ' + e.message
+                }));
+            }
+        }
+
+        if (data.command === 'CREATE_PROJECT') {
+            try {
+                const { projectName } = data;
+                
+                if (!projectName || projectName.trim() === '') {
+                    ws.send(JSON.stringify({
+                        type: 'PROJECT_ERROR',
+                        message: 'Project name is required'
+                    }));
+                    return;
+                }
+                
+                const result = createProject(projectName.trim());
+                
+                if (result.success) {
+                    ws.send(JSON.stringify({
+                        type: 'PROJECT_CREATED',
+                        projectName: result.projectName,
+                        projects: listProjects()
+                    }));
+                    console.log(`Created project: ${result.projectName}`);
+                } else {
+                    ws.send(JSON.stringify({
+                        type: 'PROJECT_ERROR',
+                        message: result.error
+                    }));
+                }
+            } catch (e) {
+                ws.send(JSON.stringify({
+                    type: 'PROJECT_ERROR',
+                    message: 'Failed to create project: ' + e.message
+                }));
+            }
+        }
+
+        if (data.command === 'SWITCH_PROJECT') {
+            try {
+                const { projectName } = data;
+                
+                if (!projectName) {
+                    ws.send(JSON.stringify({
+                        type: 'PROJECT_ERROR',
+                        message: 'Project name is required'
+                    }));
+                    return;
+                }
+                
+                const result = switchProject(projectName);
+                
+                if (result.success) {
+                    const saveFile = SAVE_FILE();
+                    let cells = [];
+                    
+                    if (fs.existsSync(saveFile)) {
+                        cells = JSON.parse(fs.readFileSync(saveFile));
+                    }
+                    
+                    ws.send(JSON.stringify({
+                        type: 'PROJECT_SWITCHED',
+                        projectName: result.projectName,
+                        cells: cells,
+                        projects: listProjects()
+                    }));
+                    console.log(`Switched to project: ${result.projectName}`);
+                } else {
+                    ws.send(JSON.stringify({
+                        type: 'PROJECT_ERROR',
+                        message: result.error
+                    }));
+                }
+            } catch (e) {
+                ws.send(JSON.stringify({
+                    type: 'PROJECT_ERROR',
+                    message: 'Failed to switch project: ' + e.message
+                }));
+            }
+        }
+
+        if (data.command === 'GET_CURRENT_PROJECT') {
+            try {
+                ws.send(JSON.stringify({
+                    type: 'CURRENT_PROJECT',
+                    projectName: getCurrentProject(),
+                    projects: listProjects()
+                }));
+            } catch (e) {
+                ws.send(JSON.stringify({
+                    type: 'PROJECT_ERROR',
+                    message: 'Failed to get current project: ' + e.message
+                }));
+            }
+        }
     });
+
+    
 
     ws.on('close', () => {
         console.log('Client disconnected');
@@ -438,7 +636,8 @@ console.log('━━━━━━━━━━━━━━━━━━━━━━�
 console.log('BFF Playground Bridge Server');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log(`WebSocket: ws://localhost:${PORT}`);
-console.log(`Save file: ${SAVE_FILE}`);
+console.log(`Current project: ${CURRENT_PROJECT}`);
+console.log(`Save file: ${SAVE_FILE()}`);
 console.log(`Environment: ${ENV_FILE}`);
 console.log(`Token: ${SECRET_TOKEN}`);
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

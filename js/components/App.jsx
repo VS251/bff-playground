@@ -6,6 +6,8 @@ function App() {
   const [socket, setSocket] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showEnvManager, setShowEnvManager] = useState(false);
+  const [currentProject, setCurrentProject] = useState('default');
+  const [availableProjects, setAvailableProjects] = useState(['default']);
   const [cells, setCells] = useState([
     { 
       id: 1, 
@@ -29,8 +31,27 @@ function App() {
       },
       () => setStatus("disconnected"),
       (data) => {
-        if (data.type === 'LOAD_DATA') {
+        if (data.type === 'CURRENT_PROJECT') {
+          setCurrentProject(data.projectName);
+          setAvailableProjects(data.projects);
+        } else if (data.type === 'PROJECTS_LIST') {
+          setAvailableProjects(data.projects);
+          setCurrentProject(data.currentProject);
+        } else if (data.type === 'PROJECT_CREATED') {
+          setAvailableProjects(data.projects);
+          // Optionally auto-switch to new project
+        } else if (data.type === 'PROJECT_SWITCHED') {
+          setCurrentProject(data.projectName);
+          setAvailableProjects(data.projects);
           setCells(data.cells.map(c => ({...c, loadKey: Date.now()})));
+          setTimeout(() => {
+            data.cells.forEach(c => { 
+              if(c.type === 'frontend') executeCell(c.id); 
+            });
+          }, 500);
+        } else if (data.type === 'LOAD_DATA') {
+          setCells(data.cells.map(c => ({...c, loadKey: Date.now()})));
+
           setTimeout(() => {
             data.cells.forEach(c => { 
               if(c.type === 'frontend') executeCell(c.id); 
@@ -159,6 +180,7 @@ function App() {
     <div className="min-h-screen flex flex-col font-sans">
       <Header 
         status={status} 
+        currentProject={currentProject}
         onHelp={() => setShowHelp(true)} 
         onEnvManager={() => setShowEnvManager(true)}
         onExport={exportProject} 
@@ -205,7 +227,13 @@ function App() {
       </main>
 
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
-      <EnvManager isOpen={showEnvManager} onClose={() => setShowEnvManager(false)} socket={socket} />
+      <EnvManager 
+        isOpen={showEnvManager} 
+        onClose={() => setShowEnvManager(false)} 
+        socket={socket}
+        currentProject={currentProject}
+        availableProjects={availableProjects}
+      />
     </div>
   );
 }
