@@ -195,14 +195,27 @@ function JsonTreeView({ data, name = 'root' }) {
 }
 
 
-function Cell({ cell, onChange, onLangChange, onFilenameChange, onRun, onClear, onDelete }) {
+function Cell({ cell, onChange, onLangChange, onFilenameChange, onRun, onClear, onDelete, hoveredCellId, dependencies, allCells, onMouseEnter, onMouseLeave }) {
   const isBackend = cell.type === 'backend';
   const isRunning = cell.status === 'running';
   const isCloud = isBackend && cell.language !== 'javascript';
   const borderColor = isRunning ? 'border-indigo-500 ring-2 ring-indigo-500 ring-opacity-20' : 'border-slate-200';
+  const isHovered = hoveredCellId === cell.id;
+  const shouldHighlight = hoveredCellId && (
+  isHovered || 
+  (cell.type === 'backend' && dependencies[hoveredCellId]?.includes(cell.id)) ||
+  (cell.type === 'frontend' && dependencies[cell.id]?.includes(hoveredCellId))
+);
+
+const highlightClasses = shouldHighlight 
+  ? 'ring-4 ring-amber-400 ring-opacity-50 border-amber-400 shadow-2xl shadow-amber-200' 
+  : '';
 
   return (
-    <div className={`relative rounded-2xl overflow-hidden border ${borderColor} bg-white shadow-sm transition-all duration-300 hover:shadow-lg group`}>
+    <div className={`relative rounded-2xl overflow-hidden border ${borderColor} ${highlightClasses} bg-white shadow-sm transition-all duration-300 hover:shadow-lg group`}
+    onMouseEnter={onMouseEnter}
+    onMouseLeave={onMouseLeave}
+    >
       <button
         onClick={onDelete}
         className="absolute top-4 right-1 z-10 p-2 bg-white text-red-600 hover:bg-red-50 rounded-full shadow-sm border border-red-100 transition-colors"
