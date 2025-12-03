@@ -631,14 +631,3 @@ wss.on('connection', (ws) => {
         console.error('WebSocket error:', error);
     });
 });
-
-console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('BFF Playground Bridge Server');
-console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log(`WebSocket: ws://localhost:${PORT}`);
-console.log(`Current project: ${CURRENT_PROJECT}`);
-console.log(`Save file: ${SAVE_FILE()}`);
-console.log(`Environment: ${ENV_FILE}`);
-console.log(`Token: ${SECRET_TOKEN}`);
-console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('Ready for connections...\n');

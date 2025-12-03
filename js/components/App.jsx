@@ -8,6 +8,7 @@ function App() {
   const [showEnvManager, setShowEnvManager] = useState(false);
   const [currentProject, setCurrentProject] = useState('default');
   const [availableProjects, setAvailableProjects] = useState(['default']);
+  const [hoveredCellId, setHoveredCellId] = useState(null);
   const [cells, setCells] = useState([
     { 
       id: 1, 
@@ -22,6 +23,26 @@ function App() {
   
   const cellsRef = useRef(cells);
   useEffect(() => { cellsRef.current = cells; }, [cells]);
+
+  const dependencies = React.useMemo(() => {
+    const deps = {};
+    cells.forEach(cell => {
+      if (cell.type === 'frontend') {
+        const backendDeps = [];
+        cells.forEach(backendCell => {
+          if (backendCell.type === 'backend') {
+            if (cell.code.includes(`['cell_${backendCell.id}']`) || 
+            cell.code.includes(`["cell_${backendCell.id}"]`) ||
+            cell.code.includes(`[\`cell_${backendCell.id}\`]`)) {
+              backendDeps.push(backendCell.id);
+            }
+          }
+        });
+      deps[cell.id] = backendDeps;
+      }
+    });
+    return deps;
+  }, [cells]);
 
   useEffect(() => {
     const ws = createWebSocketConnection(
@@ -39,7 +60,6 @@ function App() {
           setCurrentProject(data.currentProject);
         } else if (data.type === 'PROJECT_CREATED') {
           setAvailableProjects(data.projects);
-          // Optionally auto-switch to new project
         } else if (data.type === 'PROJECT_SWITCHED') {
           setCurrentProject(data.projectName);
           setAvailableProjects(data.projects);
@@ -192,8 +212,12 @@ function App() {
           <Cell 
             key={cell.id + (cell.loadKey || '')} 
             cell={cell} 
+            hoveredCellId={hoveredCellId}
+            dependencies={dependencies}
+            allCells={cells}
+            onMouseEnter={() => setHoveredCellId(cell.id)}
+            onMouseLeave={() => setHoveredCellId(null)}
             onLangChange={(lang) => setCells(prev => prev.map(c => c.id === cell.id ? { 
-              ...c, 
               language: lang, 
               filename: `script_${c.id}.${lang === 'python' ? 'py' : lang === 'go' ? 'go' : lang === 'rust' ? 'rs' : lang === 'java' ? 'java' : 'js'}`, 
               code: EXAMPLES[lang] || '' 
