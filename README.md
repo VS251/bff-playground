@@ -30,7 +30,7 @@ Need a library? You don't need to leave the browser. Just type `!npm install` in
 ### 5. Secure Environment Variables Manager
 Manage API keys, database credentials, and secrets through an intuitive UI—no more hardcoding sensitive data!
 
-![Environment Variables] (screenshots/env-manager.png)
+![Environment Variables](screenshots/env-manager.png)
 
 * **Visual Secret Management:** Add, view, and delete environment variables via the "Secrets" button.
 * **Secure Storage:** All secrets stored in .env file (gitignored by default).
