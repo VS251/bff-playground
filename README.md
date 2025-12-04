@@ -27,13 +27,33 @@ Need a library? You don't need to leave the browser. Just type `!npm install` in
 * **Persistence:** Your code is auto-saved to `playground.json`.
 * **Export:** One-click export to generate valid `.js`, `.jsx`, and `.py` source files.
 
+### 5. Secure Environment Variables Manager
+Manage API keys, database credentials, and secrets through an intuitive UI—no more hardcoding sensitive data!
+
+![Environment Variables] (screenshots/env-manager.png)
+
+* **Visual Secret Management:** Add, view, and delete environment variables via the "Secrets" button.
+* **Secure Storage:** All secrets stored in .env file (gitignored by default).
+* **Instant Access:** Use process.env.YOUR_KEY in any Node.js cell.
+* **Masked Display:** Values are hidden for security.
+* **No Manual Editing:** Never touch .env files directly.
+
+* **Example Usage**
+    ```bash
+    // Add API_KEY via Secrets UI, then access it:
+    const apiKey = process.env.API_KEY;
+    const response = await fetch('https://api.example.com', {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+    });
+    ```
+
 ---
 
 ## Installation
 
 1.  **Clone the repository**
     ```bash
-    git clone [https://github.com/VS251/bff-playground.git](https://github.com/YOUR_USERNAME/bff-playground.git)
+    git clone [https://github.com/VS251/bff-playground.git]
     cd bff-playground
     ```
 
