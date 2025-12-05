@@ -47,6 +47,20 @@ Manage API keys, database credentials, and secrets through an intuitive UI—no 
     });
     ```
 
+### 6. Interactive JSON Tree View
+Debug complex API responses and nested objects with an intuitive, collapsible tree viewer that makes data exploration effortless.
+
+![Environment Variables](screenshots/json-tree-view.png)
+
+* **Collapsible Structures:** Expand/collapse objects and arrays with chevron icons for clean, organized viewing.
+* **Syntax Highlighting:** Color-coded primitives for instant type recognition:
+  * Strings in green
+  * Numbers in blue
+  * Booleans in orange
+  * Null values in purple
+* **Smart Defaults:** Top-level objects auto-expand for immediate visibility, deeply nested structures start collapsed.
+* **Memory Efficient:** Handles large datasets without performance degradation.
+
 ---
 
 ## Installation
