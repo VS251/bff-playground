@@ -79,6 +79,33 @@ Work on multiple experiments simultaneously without data conflicts. Each project
     2. Create "weather-app" project → Build weather API integration
     3. Switch between them instantly without losing any work
 ```
+
+### 8. Visual Dependency Highlighting
+Understand your data flow at a glance with interactive cell relationship visualization. No more guessing which cells depend on each other.
+
+![Dependency Highlighting](screenshots/dependency-highlight.png)
+
+* **Hover to Reveal:** Mouse over any cell to instantly highlight its dependencies.
+* **Bidirectional Links:** 
+  * Hover Backend Cell → Highlights all Frontend cells consuming its data
+  * Hover Frontend Cell → Highlights the Backend cells it reads from
+* **Visual Feedback:** Amber glow effect clearly indicates active relationships.
+* **Zero Configuration:** Automatically detects dependencies by analyzing `window.backendData` references.
+* **Multi-Dependency Support:** Frontend cells using multiple backend sources show all connections simultaneously.
+
+* **Example Workflow:**
+```javascript
+    // Backend Cell #1: User data
+    return { name: "Alice", age: 25 };
+    
+    // Backend Cell #2: Location data
+    return { city: "New York" };
+    
+    // Frontend Cell: Consumes both
+    const user = window.backendData['cell_1'];
+    const loc = window.backendData['cell_2'];
+    // Hovering this cell highlights BOTH backend cells!
+```
 ---
 
 ## Installation
