@@ -61,6 +61,24 @@ Debug complex API responses and nested objects with an intuitive, collapsible tr
 * **Smart Defaults:** Top-level objects auto-expand for immediate visibility, deeply nested structures start collapsed.
 * **Memory Efficient:** Handles large datasets without performance degradation.
 
+### 7. Multi-Project Support
+Work on multiple experiments simultaneously without data conflicts. Each project maintains its own isolated workspace with independent cells and configurations.
+
+![Project Manager](screenshots/project-manager.png)
+
+* **Named Projects:** Create distinctly named workspaces (e.g., `crypto-tracker`, `weather-app`, `todo-list`).
+* **Seamless Switching:** Toggle between projects without restarting the server—your work is preserved.
+* **Isolated Storage:** Each project saves to its own `{name}.playground.json` file.
+* **Visual Project Manager:** Intuitive UI in the Environment Variables modal for creating and switching projects.
+* **Zero Data Loss:** Switch contexts freely—all cells, code, and outputs remain intact per project.
+* **Backward Compatible:** Existing `playground.json` automatically migrates to `default.playground.json`.
+
+* **Example Workflow:**
+```bash
+    1. Create "crypto-tracker" project → Build crypto price dashboard
+    2. Create "weather-app" project → Build weather API integration
+    3. Switch between them instantly without losing any work
+```
 ---
 
 ## Installation
